@@ -240,3 +240,56 @@ const publicService = new k8s.core.v1.Service("public-service", {
         },
     },
 });
+
+// ============================================
+// HELM v3 RELEASE EXAMPLES
+// ============================================
+
+// This Helm v3 Release violates helm-v3-require-oci-registry by using HTTPS repository
+const helmV3WithHttpsRepo = new k8s.helm.v3.Release("helm-v3-https-repo", {
+    chart: "nginx",
+    version: "1.0.0",
+    repositoryOpts: {
+        repo: "https://charts.bitnami.com/bitnami", // Violates: HTTPS repo not allowed
+    },
+});
+
+// This Helm v3 Release violates helm-v3-require-oci-registry by using HTTP repository
+const helmV3WithHttpRepo = new k8s.helm.v3.Release("helm-v3-http-repo", {
+    chart: "redis",
+    version: "2.0.0",
+    repositoryOpts: {
+        repo: "http://charts.example.com/stable", // Violates: HTTP repo not allowed
+    },
+});
+
+// ============================================
+// HELM v4 CHART EXAMPLES
+// ============================================
+
+// This Helm v4 Chart violates helm-v4-require-oci-registry by using repositoryOpts
+const helmV4WithRepoOpts = new k8s.helm.v4.Chart("helm-v4-repo-opts", {
+    chart: "postgresql",
+    version: "12.0.0",
+    repositoryOpts: {
+        repo: "https://charts.bitnami.com/bitnami", // Violates: repositoryOpts not allowed in v4
+    },
+});
+
+// This Helm v4 Chart violates helm-v4-require-oci-registry by using HTTPS URL
+const helmV4WithHttpsUrl = new k8s.helm.v4.Chart("helm-v4-https-url", {
+    chart: "https://github.com/example/charts/releases/download/v1.0.0/mychart-1.0.0.tgz", // Violates: HTTPS URL not allowed
+    version: "1.0.0",
+});
+
+// This Helm v4 Chart violates helm-v4-require-oci-registry by using repo/chart reference
+const helmV4WithRepoReference = new k8s.helm.v4.Chart("helm-v4-repo-ref", {
+    chart: "bitnami/nginx", // Violates: repo/chart reference requires traditional Helm repo
+    version: "15.0.0",
+});
+
+// This Helm v4 Chart violates helm-v4-require-oci-registry by using chart name without OCI
+const helmV4WithoutOci = new k8s.helm.v4.Chart("helm-v4-no-oci", {
+    chart: "mychart", // Violates: chart name without OCI protocol
+    version: "1.0.0",
+});

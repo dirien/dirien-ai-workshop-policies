@@ -175,5 +175,65 @@ new PolicyPack("kubernetes-typescript", {
                 }
             }),
         },
+        {
+            name: "helm-v3-require-oci-registry",
+            description: "Helm v3 Release - Require OCI-based registries. Traditional Helm repositories (HTTPS URLs) are not allowed.",
+            enforcementLevel: "mandatory",
+            validateResource: validateResourceOfType(k8s.helm.v3.Release, (release, args, reportViolation) => {
+                const repo = release.repositoryOpts?.repo;
+                
+                // If repositoryOpts.repo is specified, it must use OCI protocol
+                if (repo) {
+                    if (!repo.startsWith("oci://")) {
+                        reportViolation(
+                            `Helm v3 Release '${args.name}' uses non-OCI repository '${repo}'. ` +
+                            `Only OCI-based registries (oci://) are allowed. Traditional Helm repositories are not permitted.`
+                        );
+                    }
+                }
+            }),
+        },
+        {
+            name: "helm-v4-require-oci-registry",
+            description: "Helm v4 Chart - Require OCI-based registries. Traditional Helm repositories and HTTPS chart URLs are not allowed.",
+            enforcementLevel: "mandatory",
+            validateResource: validateResourceOfType(k8s.helm.v4.Chart, (chart, args, reportViolation) => {
+                const repo = chart.repositoryOpts?.repo;
+                const chartRef = chart.chart;
+                
+                // Disallow repositoryOpts.repo entirely for v4 (should use OCI in chart property)
+                if (repo) {
+                    reportViolation(
+                        `Helm v4 Chart '${args.name}' uses repositoryOpts.repo '${repo}'. ` +
+                        `For v4 Charts, use OCI registry URLs directly in the 'chart' property (e.g., oci://registry.example.com/charts/mychart).`
+                    );
+                }
+                
+                // Ensure chart property uses OCI protocol
+                if (chartRef) {
+                    // Check for HTTPS URLs (direct chart downloads)
+                    if (chartRef.startsWith("http://") || chartRef.startsWith("https://")) {
+                        reportViolation(
+                            `Helm v4 Chart '${args.name}' uses HTTPS URL '${chartRef}'. ` +
+                            `Only OCI-based registries (oci://) are allowed.`
+                        );
+                    }
+                    // Check for repo/chart references (requires traditional Helm repo setup)
+                    else if (chartRef.includes("/") && !chartRef.startsWith("oci://") && !chartRef.startsWith("./") && !chartRef.startsWith("../")) {
+                        reportViolation(
+                            `Helm v4 Chart '${args.name}' uses repository reference '${chartRef}'. ` +
+                            `Only OCI-based registries (oci://) are allowed. Use format: oci://registry.example.com/charts/mychart`
+                        );
+                    }
+                    // Ensure OCI protocol is used for remote charts
+                    else if (!chartRef.startsWith("oci://") && !chartRef.startsWith("./") && !chartRef.startsWith("../")) {
+                        reportViolation(
+                            `Helm v4 Chart '${args.name}' uses chart reference '${chartRef}' without OCI protocol. ` +
+                            `Only OCI-based registries (oci://) are allowed.`
+                        );
+                    }
+                }
+            }),
+        },
     ],
 });
