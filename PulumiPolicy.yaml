@@ -1,2 +1,2 @@
 runtime: nodejs
-description: A minimal Policy Pack for Kubernetes using TypeScript.
+description: A compliance Policy Pack for AWS and Kubernetes using TypeScript. Enforces cost controls, security standards, and best practices.

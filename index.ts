@@ -1,3 +1,4 @@
+import * as aws from "@pulumi/aws";
 import * as k8s from "@pulumi/kubernetes";
 import {PolicyPack, validateResourceOfType} from "@pulumi/policy";
 
@@ -61,6 +62,35 @@ const checkImageTags = (containers: any[] | undefined, reportViolation: (message
 
 new PolicyPack("acme-compliance-policies", {
     policies: [
+        {
+            name: "disallow-gpu-instance-types",
+            description: "Disallow GPU and high-performance EC2 instance types (g*, p*) to prevent accidental costly provisioning.",
+            enforcementLevel: "mandatory",
+            validateResource: validateResourceOfType(aws.ec2.Instance, (instance, args, reportViolation) => {
+                const instanceType = instance.instanceType;
+                if (!instanceType) {
+                    return;
+                }
+
+                // List of disallowed instance type prefixes
+                // These can be easily extended to include other families
+                const disallowedPrefixes = ["g", "p"];
+
+                // Check if the instance type starts with any disallowed prefix
+                for (const prefix of disallowedPrefixes) {
+                    if (instanceType.startsWith(prefix)) {
+                        reportViolation(
+                            `GPU and high-performance instance types (g*, p*) are not permitted by organization policy. ` +
+                            `Instance type '${instanceType}' is not allowed. Please use general-purpose instance types ` +
+                            `(t3, t4g, m5, m6i, etc.) unless you have explicit approval for GPU workloads.`
+                        );
+                        return;
+                    }
+                }
+            }),
+            remediationSteps: "Change the instance type to a general-purpose instance family (t3, t4g, m5, m6i, c5, c6i, r5, r6i, etc.). " +
+                "If GPU instances are required for ML or specialized compute workloads, request an exception from your platform team.",
+        },
         {
             name: "no-public-services",
             description: "Kubernetes Services should be cluster-private.",
