@@ -1,5 +1,5 @@
 import * as k8s from "@pulumi/kubernetes";
-import { PolicyPack, validateResourceOfType, ResourceValidationPolicy } from "@pulumi/policy";
+import {PolicyPack, validateResourceOfType} from "@pulumi/policy";
 
 // Helper function to check container capabilities
 const checkCapabilities = (containers: any[] | undefined, reportViolation: (message: string) => void) => {
@@ -59,7 +59,7 @@ const checkImageTags = (containers: any[] | undefined, reportViolation: (message
     }
 };
 
-new PolicyPack("kubernetes-typescript", {
+new PolicyPack("acme-compliance-policies", {
     policies: [
         {
             name: "no-public-services",
@@ -72,6 +72,7 @@ new PolicyPack("kubernetes-typescript", {
                         "public Internet.");
                 }
             }),
+            remediationSteps: "Change the Service type to ClusterIP or NodePort to restrict access within the cluster.",
         },
         {
             name: "disallow-capabilities",
@@ -84,6 +85,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkCapabilities(pod.spec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Remove any added capabilities from the container security context that are not in the allowed list.",
         },
         {
             name: "disallow-capabilities-deployment",
@@ -97,6 +99,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkCapabilities(podSpec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Remove any added capabilities from the container security context that are not in the allowed list.",
         },
         {
             name: "disallow-capabilities-statefulset",
@@ -110,6 +113,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkCapabilities(podSpec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Remove any added capabilities from the container security context that are not in the allowed list.",
         },
         {
             name: "disallow-capabilities-job",
@@ -123,6 +127,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkCapabilities(podSpec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Remove any added capabilities from the container security context that are not in the allowed list.",
         },
         {
             name: "disallow-latest-tag",
@@ -135,6 +140,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkImageTags(pod.spec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Specify an immutable image tag instead of using the ':latest' tag.",
         },
         {
             name: "disallow-latest-tag-deployment",
@@ -148,6 +154,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkImageTags(podSpec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Specify an immutable image tag instead of using the ':latest' tag.",
         },
         {
             name: "disallow-latest-tag-statefulset",
@@ -161,6 +168,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkImageTags(podSpec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Specify an immutable image tag instead of using the ':latest' tag.",
         },
         {
             name: "disallow-latest-tag-job",
@@ -174,6 +182,7 @@ new PolicyPack("kubernetes-typescript", {
                     checkImageTags(podSpec.ephemeralContainers, reportViolation);
                 }
             }),
+            remediationSteps: "Specify an immutable image tag instead of using the ':latest' tag.",
         },
     ],
 });
