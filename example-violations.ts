@@ -1,4 +1,49 @@
+import * as aws from "@pulumi/aws";
 import * as k8s from "@pulumi/kubernetes";
+
+// ============================================
+// AWS EC2 EXAMPLES
+// ============================================
+
+// This EC2 instance violates disallow-gpu-instance-types policy (g-family)
+const gpuInstanceG4dn = new aws.ec2.Instance("gpu-instance-g4dn", {
+    instanceType: "g4dn.xlarge", // Violates: GPU instance type
+    ami: "ami-0c55b159cbfafe1f0",
+    tags: {
+        Name: "ml-training-instance",
+        Purpose: "machine-learning",
+    },
+});
+
+// This EC2 instance violates disallow-gpu-instance-types policy (p-family)
+const gpuInstanceP3 = new aws.ec2.Instance("gpu-instance-p3", {
+    instanceType: "p3.2xlarge", // Violates: GPU instance type
+    ami: "ami-0c55b159cbfafe1f0",
+    tags: {
+        Name: "deep-learning-instance",
+        Purpose: "ai-training",
+    },
+});
+
+// This EC2 instance violates disallow-gpu-instance-types policy (g5-family)
+const gpuInstanceG5 = new aws.ec2.Instance("gpu-instance-g5", {
+    instanceType: "g5.xlarge", // Violates: GPU instance type
+    ami: "ami-0c55b159cbfafe1f0",
+    tags: {
+        Name: "graphics-workstation",
+        Purpose: "rendering",
+    },
+});
+
+// This EC2 instance violates disallow-gpu-instance-types policy (p4-family)
+const gpuInstanceP4 = new aws.ec2.Instance("gpu-instance-p4", {
+    instanceType: "p4d.24xlarge", // Violates: GPU instance type
+    ami: "ami-0c55b159cbfafe1f0",
+    tags: {
+        Name: "hpc-cluster-node",
+        Purpose: "high-performance-compute",
+    },
+});
 
 // ============================================
 // POD EXAMPLES
