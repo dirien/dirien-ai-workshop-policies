@@ -1,6 +1,44 @@
 import * as k8s from "@pulumi/kubernetes";
 import {PolicyPack, validateResourceOfType} from "@pulumi/policy";
 
+// Helper function to validate OCI-based Helm charts
+const validateOciHelmChart = (chart: string | undefined, repositoryOpts: any | undefined, reportViolation: (message: string) => void) => {
+    if (!chart) return;
+
+    // Check if chart uses OCI protocol
+    const isOciChart = chart.startsWith("oci://");
+    
+    // Check if chart uses HTTP/HTTPS repository
+    const isHttpChart = chart.startsWith("http://") || chart.startsWith("https://");
+    
+    // Check if repositoryOpts contains a non-OCI repo URL
+    const hasNonOciRepo = repositoryOpts?.repo && 
+                          !repositoryOpts.repo.startsWith("oci://") &&
+                          (repositoryOpts.repo.startsWith("http://") || 
+                           repositoryOpts.repo.startsWith("https://"));
+
+    // Violation: Direct HTTP/HTTPS chart URL
+    if (isHttpChart) {
+        reportViolation(
+            `Helm chart '${chart}' uses an HTTP/HTTPS URL. Only OCI-based Helm charts are allowed. ` +
+            `Please use an oci:// reference instead of a remote repo URL.`
+        );
+        return;
+    }
+
+    // Violation: Chart reference with HTTP/HTTPS repository
+    if (hasNonOciRepo) {
+        reportViolation(
+            `Helm chart '${chart}' uses a non-OCI repository '${repositoryOpts.repo}'. ` +
+            `Only OCI-based Helm charts are allowed. Please use an oci:// reference instead of a remote repo URL.`
+        );
+        return;
+    }
+
+    // Allow: OCI charts, local paths, and chart references without explicit repo
+    // (local paths like "./chart" or "./chart.tgz" are allowed for development)
+};
+
 // Helper function to check container capabilities
 const checkCapabilities = (containers: any[] | undefined, reportViolation: (message: string) => void) => {
     const allowedCapabilities = [
@@ -183,6 +221,24 @@ new PolicyPack("acme-compliance-policies", {
                 }
             }),
             remediationSteps: "Specify an immutable image tag instead of using the ':latest' tag.",
+        },
+        {
+            name: "require-oci-helm-charts-v3",
+            description: "Require OCI-based Helm Charts (v3.Release) - Only OCI-based Helm charts are allowed for better security, provenance, and reproducibility.",
+            enforcementLevel: "mandatory",
+            validateResource: validateResourceOfType(k8s.helm.v3.Release, (release, args, reportViolation) => {
+                validateOciHelmChart(release.chart, release.repositoryOpts, reportViolation);
+            }),
+            remediationSteps: "Use an OCI registry reference (oci://registry.example.com/charts/mychart) instead of HTTP/HTTPS repository URLs.",
+        },
+        {
+            name: "require-oci-helm-charts-v4",
+            description: "Require OCI-based Helm Charts (v4.Chart) - Only OCI-based Helm charts are allowed for better security, provenance, and reproducibility.",
+            enforcementLevel: "mandatory",
+            validateResource: validateResourceOfType(k8s.helm.v4.Chart, (chart, args, reportViolation) => {
+                validateOciHelmChart(chart.chart, chart.repositoryOpts, reportViolation);
+            }),
+            remediationSteps: "Use an OCI registry reference (oci://registry.example.com/charts/mychart) instead of HTTP/HTTPS repository URLs.",
         },
     ],
 });

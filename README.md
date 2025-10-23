@@ -146,15 +146,76 @@ new k8s.core.v1.Pod("pod", {
 
 ---
 
+### 4. require-oci-helm-charts (Mandatory)
+
+**Enforcement Level:** `mandatory`
+
+**Description:** Ensures that all Helm deployments use OCI-based charts for better security, provenance, and reproducibility. OCI registries enforce authentication and version immutability.
+
+**What it checks:**
+- Validates that Helm charts use `oci://` protocol
+- Blocks charts fetched from HTTP/HTTPS repositories
+- Blocks charts using `repositoryOpts.repo` with HTTP/HTTPS URLs
+- Applies to: `kubernetes.helm.v3.Release` and `kubernetes.helm.v4.Chart`
+
+**Violation Examples:**
+
+```typescript
+// ❌ Direct HTTP URL
+new k8s.helm.v3.Release("nginx", {
+    chart: "https://charts.bitnami.com/bitnami/nginx-1.2.3.tgz",
+});
+
+// ❌ Chart reference with HTTP repository
+new k8s.helm.v3.Release("nginx", {
+    chart: "nginx",
+    repositoryOpts: {
+        repo: "https://charts.bitnami.com/bitnami",
+    },
+});
+
+// ❌ v4.Chart with HTTP repository
+new k8s.helm.v4.Chart("nginx", {
+    chart: "nginx",
+    repositoryOpts: {
+        repo: "https://kubernetes-charts.storage.googleapis.com",
+    },
+});
+```
+
+**Compliant Examples:**
+
+```typescript
+// ✅ OCI registry (v3.Release)
+new k8s.helm.v3.Release("nginx", {
+    chart: "oci://registry-1.docker.io/bitnamicharts/nginx",
+    version: "15.0.0",
+});
+
+// ✅ OCI registry (v4.Chart)
+new k8s.helm.v4.Chart("nginx", {
+    chart: "oci://ghcr.io/myorg/nginx",
+    version: "1.2.3",
+});
+
+// ✅ Local chart for development
+new k8s.helm.v3.Release("nginx", {
+    chart: "./charts/nginx",
+});
+```
+
+---
+
 ## Resource Coverage
 
 The policies validate the following Kubernetes resources:
 
-| Policy | Pod | Deployment | StatefulSet | Job | Service |
-|--------|-----|------------|-------------|-----|---------|
-| no-public-services | - | - | - | - | ✅ |
-| disallow-capabilities | ✅ | ✅ | ✅ | ✅ | - |
-| disallow-latest-tag | ✅ | ✅ | ✅ | ✅ | - |
+| Policy | Pod | Deployment | StatefulSet | Job | Service | Helm v3 | Helm v4 |
+|--------|-----|------------|-------------|-----|---------|---------|---------|
+| no-public-services | - | - | - | - | ✅ | - | - |
+| disallow-capabilities | ✅ | ✅ | ✅ | ✅ | - | - | - |
+| disallow-latest-tag | ✅ | ✅ | ✅ | ✅ | - | - | - |
+| require-oci-helm-charts | - | - | - | - | - | ✅ | ✅ |
 
 ---
 
